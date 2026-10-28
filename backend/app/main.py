@@ -18,10 +18,11 @@ from .routers import events, complaints, mart, mobility, academics, auth, admin,
 from .routers import smart_mobility
 from fastapi.middleware.cors import CORSMiddleware
 
-# ── Paths to the original HTML files (kept in-place, never moved) ─────────────
-_BACKEND_ROOT = Path("C:/Users/Lenovo/Desktop/BACKEND")
-_B1_MART_HTML   = _BACKEND_ROOT / "B1_Mart_updated(6).html"
-_MOBILITY_HTML  = _BACKEND_ROOT / "index (1).html"
+# ── Paths to the HTML files inside backend/app/static
+_STATIC_DIR = Path(__file__).resolve().parent / "static"
+_B1_MART_HTML = _STATIC_DIR / "b1_mart.html"
+_MOBILITY_HTML = _STATIC_DIR / "mobility_v2.html"
+
 
 # ── App ────────────────────────────────────────────────────────────────────────
 app = FastAPI(
