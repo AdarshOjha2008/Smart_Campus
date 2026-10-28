@@ -230,11 +230,13 @@ def health():
     return {
         "status": "online",
         "project": "Smart Campus",
-        "pages": {
-            "b1_mart": "http://127.0.0.1:8000/b1-mart",
-            "mobility": "http://127.0.0.1:8000/mobility",
-        },
-        "api_docs": "http://127.0.0.1:8000/docs",
+        
+"pages": {
+    "b1_mart": "https://smart-campus-backend-ty3z.onrender.com/b1-mart",
+    "mobility": "https://smart-campus-backend-ty3z.onrender.com/mobility",
+},
+"api_docs": "https://smart-campus-backend-ty3z.onrender.com/docs",
+
         "features": [
             "B1 Mart (HTML page + /api/mart/* JSON API)",
             "Smart Mobility (HTML page + /api/transit/* JSON API)",
