@@ -300,7 +300,7 @@ export default function App() {
                   Pickup Counter: 10AM–2PM • 4PM–11PM
                 </span>
                 <a
-                  href="/b1-mart"
+                  href="https://smart-campus-backend-ty3z.onrender.com/b1-mart"
                   target="_blank"
                   rel="noreferrer"
                   className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer"
@@ -311,7 +311,7 @@ export default function App() {
               </div>
             </div>
             <iframe
-              src="/b1-mart"
+              src="https://smart-campus-backend-ty3z.onrender.com/b1-mart"
               title="B1 Mart Storefront"
               className="w-full h-[82vh] border-0 bg-white"
             />
@@ -332,7 +332,7 @@ export default function App() {
                   Live Fares & BRTS Timings
                 </span>
                 <a
-                  href="/mobility"
+                  href="https://smart-campus-backend-ty3z.onrender.com/mobility"
                   target="_blank"
                   rel="noreferrer"
                   className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 hover:text-white border border-emerald-500/30 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer"
@@ -343,7 +343,7 @@ export default function App() {
               </div>
             </div>
             <iframe
-              src="/mobility"
+              src="https://smart-campus-backend-ty3z.onrender.com/mobility"
               title="RaipurTransit Smart Mobility"
               className="w-full h-[85vh] border-0 bg-white"
             />
