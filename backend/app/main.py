@@ -198,7 +198,7 @@ def index():
     <h1>Smart Campus FastAPI</h1>
     <p>The backend server is running and healthy. You can explore the interactive API docs or launch the React frontend.</p>
     <div class="links">
-      <a href="http://localhost:5173" class="primary">
+      <a href="https://smart-campus-smxf.onrender.com" class="primary">
         <span>🚀 Open Frontend Application</span>
         <span class="arrow">↗</span>
       </a>
@@ -232,10 +232,10 @@ def health():
         "project": "Smart Campus",
         
 "pages": {
-    "b1_mart": "https://smart-campus-backend-ty3z.onrender.com/b1-mart",
-    "mobility": "https://smart-campus-backend-ty3z.onrender.com/mobility",
+    "b1_mart": "https://smart-campus-smxf.onrender.com/b1-mart",
+    "mobility": "https://smart-campus-smxf.onrender.com/mobility",
 },
-"api_docs": "https://smart-campus-backend-ty3z.onrender.com/docs",
+"api_docs": "https://smart-campus-smxf.onrender.com/docs",
 
         "features": [
             "B1 Mart (HTML page + /api/mart/* JSON API)",
