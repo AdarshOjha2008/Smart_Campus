@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raipur & Nava Raipur Smart Mobility - Rapido & BRTS Transit Hub</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        rapido: {
+                            400: '#facc15',
+                            500: '#eab308',
+                            600: '#ca8a04',
+                            900: '#713f12',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            padding: 4px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(107, 114, 128, 0.8);
+        }
+        .step-connector {
+            position: absolute;
+            top: 24px;
+            left: 15px;
+            bottom: -8px;
+            width: 2px;
+            background-color: #cbd5e1;
+            z-index: 0;
+        }
+        .dark .step-connector {
+            background-color: #475569;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 h-full flex flex-col transition-colors duration-200">
+
+    <!-- Navigation / Top Header -->
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30 shadow-sm transition-colors duration-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo & Branding -->
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('planner')">
+                    <div class="bg-gradient-to-tr from-amber-400 to-emerald-500 p-2.5 rounded-xl text-gray-900 shadow-md">
+                        <i data-lucide="zap" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-extrabold text-lg leading-none tracking-tight text-gray-900 dark:text-white">RaipurTransit <span class="text-amber-500">Rapido+</span></span>
+                            <span class="bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 text-[10px] px-2 py-0.5 rounded-full font-bold border border-amber-300 dark:border-amber-800">Rapido App Deep-Link Connected</span>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Multi-Leg Bus vs Rapido Bike/Auto/Cab Engine</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs (Desktop) -->
+                <nav class="hidden md:flex space-x-1 bg-gray-100 dark:bg-gray-700/50 p-1 rounded-xl">
+                    <button id="nav-planner" onclick="switchTab('planner')" class="tab-btn flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-lg text-amber-700 dark:text-amber-400 bg-white dark:bg-gray-800 shadow-xs transition-all">
+                        <i data-lucide="route" class="w-4 h-4"></i>
+                        <span>Step Route & Rapido</span>
+                    </button>
+                    <button id="nav-schedules" onclick="switchTab('schedules')" class="tab-btn flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all">
+                        <i data-lucide="clock" class="w-4 h-4"></i>
+                        <span>Bus Timings</span>
+                    </button>
+                    <button id="nav-directory" onclick="switchTab('directory')" class="tab-btn flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all">
+                        <i data-lucide="map-pin" class="w-4 h-4"></i>
+                        <span>Places Directory</span>
+                    </button>
+                </nav>
+
+                <!-- Actions -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="toggleDarkMode()" class="p-2.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors" title="Toggle Theme">
+                        <i data-lucide="moon" id="theme-icon-moon" class="w-5 h-5 hidden dark:block"></i>
+                        <i data-lucide="sun" id="theme-icon-sun" class="w-5 h-5 block dark:hidden"></i>
+                    </button>
+                    <button onclick="resetMapView()" class="hidden sm:flex items-center space-x-1 px-3 py-2 text-xs font-semibold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors">
+                        <i data-lucide="locate-fixed" class="w-4 h-4"></i>
+                        <span>Center Map</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile Navigation Bar (Subheader) -->
+        <div class="md:hidden flex border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 px-2 py-1.5 justify-around">
+            <button id="mob-nav-planner" onclick="switchTab('planner')" class="flex flex-col items-center py-1 px-3 rounded-lg text-amber-600 font-bold text-xs">
+                <i data-lucide="route" class="w-4 h-4 mb-0.5"></i>
+                <span>Route & Rapido</span>
+            </button>
+            <button id="mob-nav-schedules" onclick="switchTab('schedules')" class="flex flex-col items-center py-1 px-3 rounded-lg text-gray-500 dark:text-gray-400 text-xs">
+                <i data-lucide="clock" class="w-4 h-4 mb-0.5"></i>
+                <span>Buses</span>
+            </button>
+            <button id="mob-nav-directory" onclick="switchTab('directory')" class="flex flex-col items-center py-1 px-3 rounded-lg text-gray-500 dark:text-gray-400 text-xs">
+                <i data-lucide="map-pin" class="w-4 h-4 mb-0.5"></i>
+                <span>Directory</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+
+        <!-- Sidebar Panel / Tab Pages -->
+        <aside class="w-full md:w-[480px] lg:w-[530px] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col z-10 shadow-lg h-1/2 md:h-full overflow-hidden">
+            
+            <!-- VIEW 1: STEP-BY-STEP MULTI-LEG ROUTE PLANNER & RAPIDO integration -->
+            <div id="view-planner" class="view-panel h-full flex flex-col p-4 overflow-y-auto custom-scrollbar space-y-4">
+                
+                <!-- Quick Route Preset Chips -->
+                <div class="bg-gradient-to-r from-amber-500/10 to-emerald-500/10 dark:from-amber-950/40 dark:to-emerald-950/40 p-3 rounded-2xl border border-amber-500/20 dark:border-amber-500/30">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                            <i data-lucide="zap" class="w-3.5 h-3.5"></i> Frequent Commute Shortcuts
+                        </span>
+                        <span class="text-[10px] text-gray-500 dark:text-gray-400">Click to calculate</span>
+                    </div>
+                    <div class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar text-xs">
+                        <button onclick="quickSelectRoute('loc-iiitnr', 'loc-airport')" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-amber-500 px-2.5 py-1.5 rounded-xl whitespace-nowrap shadow-xs text-gray-700 dark:text-gray-200 hover:text-amber-600 transition-all font-semibold flex items-center gap-1">
+                            ✈️ IIITNR ➔ Airport
+                        </button>
+                        <button onclick="quickSelectRoute('loc-iiitnr', 'loc-zora')" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-amber-500 px-2.5 py-1.5 rounded-xl whitespace-nowrap shadow-xs text-gray-700 dark:text-gray-200 hover:text-amber-600 transition-all font-semibold flex items-center gap-1">
+                            🚏 IIITNR ➔ Zora (Direct Bus)
+                        </button>
+                        <button onclick="quickSelectRoute('loc-iiitnr', 'loc-ambuja')" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-amber-500 px-2.5 py-1.5 rounded-xl whitespace-nowrap shadow-xs text-gray-700 dark:text-gray-200 hover:text-amber-600 transition-all font-semibold flex items-center gap-1">
+                            🛍️ IIITNR ➔ Ambuja Mall
+                        </button>
+                        <button onclick="quickSelectRoute('loc-hnlu', 'loc-magneto')" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-amber-500 px-2.5 py-1.5 rounded-xl whitespace-nowrap shadow-xs text-gray-700 dark:text-gray-200 hover:text-amber-600 transition-all font-semibold flex items-center gap-1">
+                            🛍️ HNLU ➔ Magneto Mall
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Input Route Card -->
+                <div class="bg-gray-50 dark:bg-gray-700/40 p-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-3 relative">
+                    <!-- Origin Selection -->
+                    <div class="relative">
+                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Origin / Starting Point
+                        </label>
+                        <div class="relative">
+                            <select id="origin-select" onchange="calculateAndDisplayRoute()" class="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl pl-9 pr-8 py-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 appearance-none font-semibold shadow-xs">
+                                <option value="">Select Origin Location...</option>
+                            </select>
+                            <i data-lucide="circle-dot" class="w-4 h-4 text-emerald-600 absolute left-3 top-3"></i>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 absolute right-3 top-3 pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <!-- Swap Button in middle -->
+                    <div class="flex justify-center -my-2 relative z-10">
+                        <button onclick="swapLocations()" class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-amber-50 text-gray-600 dark:text-gray-300 p-2 rounded-full shadow-md transition-transform active:scale-95" title="Swap Origin & Destination">
+                            <i data-lucide="arrow-up-down" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <!-- Destination Selection -->
+                    <div class="relative">
+                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> Destination Spot
+                        </label>
+                        <div class="relative">
+                            <select id="destination-select" onchange="calculateAndDisplayRoute()" class="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl pl-9 pr-8 py-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 appearance-none font-semibold shadow-xs">
+                                <option value="">Select Destination Location...</option>
+                            </select>
+                            <i data-lucide="map-pin" class="w-4 h-4 text-red-500 absolute left-3 top-3"></i>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 absolute right-3 top-3 pointer-events-none"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Distance & Total Summary Bar -->
+                <div id="route-summary" class="hidden bg-amber-500/10 dark:bg-amber-900/30 border border-amber-500/30 rounded-xl p-3 flex items-center justify-between text-xs text-amber-900 dark:text-amber-200">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="milestone" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
+                        <span>Distance: <strong id="summary-distance">0 km</strong></span>
+                    </div>
+                    <div class="flex items-center space-x-1 text-amber-800 dark:text-amber-300 font-semibold">
+                        <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                        <span id="summary-transfers">Multi-Leg Bus Transfer</span>
+                    </div>
+                </div>
+
+                <!-- RAPIDO LIVE FARE ESTIMATOR & DEEP-LINK CONTAINER -->
+                <div class="border-2 border-amber-400 bg-gradient-to-b from-amber-50/80 to-white dark:from-amber-950/20 dark:to-gray-800 rounded-2xl p-4 shadow-md space-y-3">
+                    <div class="flex items-center justify-between border-b border-amber-200 dark:border-amber-900/60 pb-2.5">
+                        <div class="flex items-center space-x-2">
+                            <div class="bg-amber-400 text-gray-900 p-2 rounded-xl font-black flex items-center justify-center">
+                                <i data-lucide="zap" class="w-5 h-5 fill-current"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-extrabold text-gray-900 dark:text-white text-sm flex items-center gap-1.5">
+                                    Rapido Live Fare Estimator
+                                    <span class="bg-amber-400 text-gray-900 text-[10px] font-black px-1.5 py-0.2 rounded">LIVE DEEP-LINK</span>
+                                </h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Simulated Raipur live rates with direct App pre-fill</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rapido Options Grid (Bike, Auto, Cab) -->
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <!-- Rapido Bike -->
+                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 flex flex-col justify-between shadow-2xs hover:border-amber-400 transition-colors">
+                            <div>
+                                <span class="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                                    <i data-lucide="bike" class="w-3 h-3"></i> Rapido Bike
+                                </span>
+                                <div class="text-lg font-black text-gray-900 dark:text-white mt-0.5" id="rapido-bike-fare">₹0</div>
+                                <p class="text-[10px] text-gray-400" id="rapido-bike-time">~0 mins</p>
+                            </div>
+                            <button onclick="bookRapido('bike')" class="mt-2 w-full bg-amber-400 hover:bg-amber-500 text-gray-900 font-extrabold text-[11px] py-1.5 px-1 rounded-lg transition-all flex items-center justify-center gap-1 shadow-xs">
+                                <span>Book Bike</span> <i data-lucide="external-link" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+
+                        <!-- Rapido Auto -->
+                        <div class="bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-700/70 rounded-xl p-2.5 flex flex-col justify-between shadow-2xs relative overflow-hidden">
+                            <span class="absolute -right-5 top-2 bg-amber-400 text-gray-900 text-[8px] font-black uppercase tracking-tighter px-5 py-0.5 rotate-45 shadow-2xs">Best Value</span>
+                            <div>
+                                <span class="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                                    <i data-lucide="car" class="w-3 h-3"></i> Rapido Auto
+                                </span>
+                                <div class="text-lg font-black text-gray-900 dark:text-white mt-0.5" id="rapido-auto-fare">₹0</div>
+                                <p class="text-[10px] text-gray-400" id="rapido-auto-time">~0 mins</p>
+                            </div>
+                            <button onclick="bookRapido('auto')" class="mt-2 w-full bg-amber-400 hover:bg-amber-500 text-gray-900 font-extrabold text-[11px] py-1.5 px-1 rounded-lg transition-all flex items-center justify-center gap-1 shadow-xs">
+                                <span>Book Auto</span> <i data-lucide="external-link" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+
+                        <!-- Rapido Cab -->
+                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 flex flex-col justify-between shadow-2xs hover:border-amber-400 transition-colors">
+                            <div>
+                                <span class="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                                    <i data-lucide="navigation-2" class="w-3 h-3"></i> Rapido Cab
+                                </span>
+                                <div class="text-lg font-black text-gray-900 dark:text-white mt-0.5" id="rapido-cab-fare">₹0</div>
+                                <p class="text-[10px] text-gray-400" id="rapido-cab-time">~0 mins</p>
+                            </div>
+                            <button onclick="bookRapido('cab')" class="mt-2 w-full bg-amber-400 hover:bg-amber-500 text-gray-900 font-extrabold text-[11px] py-1.5 px-1 rounded-lg transition-all flex items-center justify-center gap-1 shadow-xs">
+                                <span>Book Cab</span> <i data-lucide="external-link" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-gray-400 italic text-center">Note: Clicking 'Book' opens the Rapido App with origin and destination lat/long automatically passed.</p>
+                </div>
+
+                <!-- MULTI-LEG STEP-BY-STEP BREAKDOWN CONTAINER -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="git-commit" class="w-4 h-4 text-emerald-600"></i>
+                            Bus + Shared Auto Step-By-Step Breakdown
+                        </h3>
+                        <span id="corridor-badge" class="text-[11px] text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                            Budget Optimized
+                        </span>
+                    </div>
+
+                    <!-- Step-By-Step Multi-Leg Card -->
+                    <div class="border border-emerald-300 dark:border-emerald-800 bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-xs relative space-y-4">
+                        
+                        <!-- Header Fare Badge -->
+                        <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-700/80 pb-3">
+                            <div class="flex items-center space-x-2">
+                                <div class="bg-emerald-600 text-white p-2 rounded-xl">
+                                    <i data-lucide="bus" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-900 dark:text-white text-sm" id="multi-leg-title">Bus + Shared Auto Route</h4>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400" id="multi-leg-sub">Recommended Student Transfer Route</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-2xl font-black text-emerald-700 dark:text-emerald-400" id="multi-leg-total-fare">₹0</span>
+                                <p class="text-[10px] text-gray-400 font-medium" id="multi-leg-total-time">~0 mins total</p>
+                            </div>
+                        </div>
+
+                        <!-- Step By Step Timeline List -->
+                        <div id="steps-container" class="space-y-4 relative pl-2">
+                            <!-- Steps will be generated here dynamically -->
+                        </div>
+
+                        <!-- Eco Savings footer -->
+                        <div class="bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between border border-emerald-200/60 dark:border-emerald-800/40">
+                            <span class="flex items-center gap-1 font-medium">
+                                <i data-lucide="leaf" class="w-3.5 h-3.5 text-emerald-600"></i> Saves <span id="co2-saving" class="font-bold">0.8</span> kg CO₂ vs Direct Cab
+                            </span>
+                            <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Save up to ₹<span id="rapido-savings">150</span> vs Rapido Cab</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Bus Route Tip -->
+                <div class="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 rounded-xl p-3 text-xs text-blue-900 dark:text-blue-300 flex items-start gap-2.5">
+                    <i data-lucide="info" class="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5"></i>
+                    <div>
+                        <strong class="font-bold block mb-0.5">Local Commute Rule:</strong>
+                        <span>Stops on the main BRTS highway (Zora, Telibandha, CBD, Agriculture College) require <strong>0 extra auto fare</strong>! For off-corridor places (Airport Terminal, Ambuja Mall, Pandri), take a BRTS bus to the closest stop and board a shared auto (₹10–₹20) or book a quick Rapido Bike!</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- VIEW 2: BUS SCHEDULES & TIMINGS -->
+            <div id="view-schedules" class="view-panel h-full hidden flex-col p-4 overflow-y-auto custom-scrollbar space-y-4">
+                <div>
+                    <h2 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i data-lucide="clock" class="w-5 h-5 text-emerald-600"></i>
+                        Bus Stops & Timings Engine
+                    </h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Schedules for major corridor stops in Nava Raipur & Raipur</p>
+                </div>
+
+                <!-- Bus Stop Filter -->
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400">Select Transit Stop / Interchange:</label>
+                    <div class="relative">
+                        <select id="schedule-stop-select" onchange="renderBusSchedules()" class="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl pl-9 pr-8 py-2 text-sm focus:ring-2 focus:ring-amber-500 font-semibold">
+                            <option value="all">All Stops in Network</option>
+                            <option value="iiitnr">IIITNR Main Gate (Sector 24)</option>
+                            <option value="hnlu">HNLU Bus Stop (Nava Raipur)</option>
+                            <option value="zora">Zora Bus Stop (GE Road Highway)</option>
+                            <option value="airport_turn">Mana Camp / Airport Turn Stop</option>
+                            <option value="telibandha">Telibandha Express Highway Stop</option>
+                            <option value="pandri">Pandri Bus Stand Interchange</option>
+                            <option value="cbd">CBD Station Stop (Nava Raipur)</option>
+                            <option value="rpr_station">Raipur Junction Station Stop</option>
+                        </select>
+                        <i data-lucide="map-pin" class="w-4 h-4 text-emerald-600 absolute left-3 top-2.5"></i>
+                    </div>
+                </div>
+
+                <!-- Timeline / Schedule Cards Container -->
+                <div id="bus-schedules-container" class="space-y-3">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- VIEW 3: PLACES DIRECTORY -->
+            <div id="view-directory" class="view-panel h-full hidden flex-col p-4 overflow-y-auto custom-scrollbar space-y-4">
+                <div>
+                    <h2 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i data-lucide="compass" class="w-5 h-5 text-emerald-600"></i>
+                        Raipur & Nava Raipur Spots Directory
+                    </h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Explore universities, hospitals, malls, and bus interchanges</p>
+                </div>
+
+                <!-- Category Quick Filter Chips -->
+                <div class="flex gap-1.5 overflow-x-auto pb-1 text-xs custom-scrollbar">
+                    <button onclick="filterDirectory('all')" class="dir-filter-btn px-3 py-1.5 rounded-xl font-semibold bg-emerald-600 text-white whitespace-nowrap shadow-xs">All</button>
+                    <button onclick="filterDirectory('college')" class="dir-filter-btn px-3 py-1.5 rounded-xl font-semibold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 whitespace-nowrap">🎓 Colleges</button>
+                    <button onclick="filterDirectory('hospital')" class="dir-filter-btn px-3 py-1.5 rounded-xl font-semibold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 whitespace-nowrap">🏥 Hospitals</button>
+                    <button onclick="filterDirectory('mall')" class="dir-filter-btn px-3 py-1.5 rounded-xl font-semibold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 whitespace-nowrap">🛍️ Malls & Leisure</button>
+                    <button onclick="filterDirectory('transit')" class="dir-filter-btn px-3 py-1.5 rounded-xl font-semibold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 whitespace-nowrap">🚉 Bus Stops & Transit</button>
+                </div>
+
+                <!-- Places Cards Grid -->
+                <div id="directory-cards-container" class="space-y-2.5">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- Interactive Map Container -->
+        <section class="flex-1 h-1/2 md:h-full relative w-full bg-gray-200 dark:bg-gray-900">
+            <div id="map" class="w-full h-full z-0"></div>
+
+            <!-- Map Floating Controls Overlay -->
+            <div class="absolute top-4 right-4 z-10 flex flex-col gap-2">
+                <button onclick="resetMapView()" class="bg-white dark:bg-gray-800 text-gray-800 dark:text-white p-2.5 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center" title="Recenter View">
+                    <i data-lucide="maximize-2" class="w-5 h-5"></i>
+                </button>
+                <button onclick="toggleMapType()" class="bg-white dark:bg-gray-800 text-gray-800 dark:text-white p-2.5 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center" title="Toggle Dark/Light Tiles">
+                    <i data-lucide="layers" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Map Legend (Bottom Right Overlay) -->
+            <div class="absolute bottom-4 right-4 z-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md p-2.5 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 text-xs hidden sm:block">
+                <div class="font-bold text-gray-800 dark:text-gray-200 mb-1 text-[11px] uppercase tracking-wider">Map Legend</div>
+                <div class="grid grid-cols-2 gap-x-3 gap-y-1">
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Colleges</div>
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> Hospitals</div>
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span> Malls</div>
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Transit Hubs</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // Comprehensive Spots Database including Zora and exact transit hubs
+        const LOCATIONS_DATA = [
+            {
+                id: "loc-iiitnr",
+                name: "IIIT Naya Raipur",
+                category: "college",
+                subtext: "Sector 24, Nava Raipur (Direct BRTS Stop)",
+                lat: 21.1285,
+                lng: 81.7662,
+                color: "#3b82f6",
+                isDirectCorridor: true
+            },
+            {
+                id: "loc-hnlu",
+                name: "HNLU Raipur",
+                category: "college",
+                subtext: "Upartora, Nava Raipur (Direct BRTS Stop)",
+                lat: 21.1398,
+                lng: 81.7761,
+                color: "#3b82f6",
+                isDirectCorridor: true
+            },
+            {
+                id: "loc-nit",
+                name: "NIT Raipur",
+                category: "college",
+                subtext: "GE Road, Saraswati Nagar (Direct Bus Stop)",
+                lat: 21.2497,
+                lng: 81.6050,
+                color: "#3b82f6",
+                isDirectCorridor: true
+            },
+            {
+                id: "loc-kalinga",
+                name: "Kalinga University",
+                category: "college",
+                subtext: "Kotni, Nava Raipur (Short Auto from Sector 27)",
+                lat: 21.1820,
+                lng: 81.7925,
+                color: "#3b82f6",
+                isDirectCorridor: false,
+                nearestStop: "Sector 27 / Kotni Bus Stop",
+                autoFareFromStop: 15
+            },
+            {
+                id: "loc-zora",
+                name: "Zora Bus Stop",
+                category: "transit",
+                subtext: "GE Road / Agriculture University, Raipur (Direct Corridor)",
+                lat: 21.2395,
+                lng: 81.7010,
+                color: "#10b981",
+                isDirectCorridor: true
+            },
+            {
+                id: "loc-balco",
+                name: "Balco Medical Centre",
+                category: "hospital",
+                subtext: "Sector 36, Nava Raipur (1.5km off BRTS route)",
+                lat: 21.1570,
+                lng: 81.7890,
+                color: "#ef4444",
+                isDirectCorridor: false,
+                nearestStop: "CBD Sector 21 BRTS Stop",
+                autoFareFromStop: 20
+            },
+            {
+                id: "loc-aiims",
+                name: "AIIMS Raipur",
+                category: "hospital",
+                subtext: "GE Road, Tatibandh (Direct GE Road Bus Stop)",
+                lat: 21.2571,
+                lng: 81.5792,
+                color: "#ef4444",
+                isDirectCorridor: true
+            },
+            {
+                id: "loc-nhmmi",
+                name: "NH MMI Narayana Hospital",
+                category: "hospital",
+                subtext: "Dhamtari Road, Lalpur (Auto from Pachpedi Naka)",
+                lat: 21.2135,
+                lng: 81.6512,
+                color: "#ef4444",
+                isDirectCorridor: false,
+                nearestStop: "Pachpedi Naka Bus Stop",
+                autoFareFromStop: 15
+            },
+            {
+                id: "loc-magneto",
+                name: "Magneto The Mall",
+                category: "mall",
+                subtext: "Labhandi, GE Road (Direct Bus Stop across highway)",
+                lat: 21.2425,
+                lng: 81.6820,
+                color: "#a855f7",
+                isDirectCorridor: true
+            },
+            {
+                id: "loc-ambuja",
+                name: "Ambuja City Centre",
+                category: "mall",
+                subtext: "Vidhan Sabha Road, Mowa (Auto from Pandri)",
+                lat: 21.2721,
+                lng: 81.6660,
+                color: "#a855f7",
+                isDirectCorridor: false,
+                nearestStop: "Pandri Bus Stand Interchange",
+                autoFareFromStop: 20
+            },
+            {
+                id: "loc-purkhouti",
+                name: "Purkhouti Muktangan",
+                category: "mall",
+                subtext: "Sector 24, Nava Raipur (Direct BRTS Stop)",
+                lat: 21.1350,
+                lng: 81.7610,
+                color: "#a855f7",
+                isDirectCorridor: true
+            },
+            {
+                id: "loc-airport",
+                name: "Swami Vivekananda Airport",
+                category: "transit",
+                subtext: "Mana Airport Terminal (Shared Auto from Mana Turn)",
+                lat: 21.1804,
+                lng: 81.7388,
+                color: "#10b981",
+                isDirectCorridor: false,
+                nearestStop: "Mana Camp / Airport Turn Stop",
+                autoFareFromStop: 20
+            },
+            {
+                id: "loc-rpr-station",
+                name: "Raipur Junction Railway Station",
+                category: "transit",
+                subtext: "Station Road, Raipur (Direct City Bus Terminal)",
+                lat: 21.2570,
+                lng: 81.6298,
+                color: "#10b981",
+                isDirectCorridor: true
+            },
+            {
+                id: "loc-cbd",
+                name: "CBD Nava Raipur",
+                category: "transit",
+                subtext: "Sector 21, Nava Raipur (Central BRTS Station)",
+                lat: 21.1550,
+                lng: 81.7720,
+                color: "#10b981",
+                isDirectCorridor: true
+            },
+            {
+                id: "loc-telibandha",
+                name: "Telibandha Expressway Interchange",
+                category: "transit",
+                subtext: "Express Highway Junction, Raipur (Main Transfer Hub)",
+                lat: 21.2380,
+                lng: 81.6680,
+                color: "#10b981",
+                isDirectCorridor: true
+            },
+            {
+                id: "loc-pandri",
+                name: "Pandri Bus Stand Interchange",
+                category: "transit",
+                subtext: "Pandri Market Hub, Raipur",
+                lat: 21.2560,
+                lng: 81.6520,
+                color: "#10b981",
+                isDirectCorridor: true
+            }
+        ];
+
+        // Specific Hand-crafted Rules for precise local routes
+        const ROUTE_RULES = {
+            // IIITNR -> Airport Terminal
+            "loc-iiitnr_loc-airport": {
+                title: "BRTS Bus + Shared Auto Last-Mile",
+                sub: "Bus to Mana Turn + Shared Auto to Terminal",
+                legs: [
+                    {
+                        type: "bus",
+                        vehicle: "BRTS Route 101 / Airport Link",
+                        from: "IIITNR Main Gate",
+                        to: "Mana Camp / Airport Turn Stop",
+                        fare: 20,
+                        time: "20 mins",
+                        icon: "bus",
+                        color: "bg-emerald-600",
+                        note: "Get down at Airport Turn / Mana Camp stop on main road."
+                    },
+                    {
+                        type: "auto",
+                        vehicle: "Shared Auto / Rapido Bike",
+                        from: "Mana Airport Turn Stop",
+                        to: "Swami Vivekananda Airport Terminal",
+                        fare: 20,
+                        time: "8 mins",
+                        icon: "car",
+                        color: "bg-amber-500",
+                        note: "Shared auto directly into airport departures gate."
+                    }
+                ],
+                waypoints: [[21.1285, 81.7662], [21.1730, 81.7420], [21.1804, 81.7388]]
+            },
+
+            // IIITNR -> Zora Bus Stop (Direct Bus Highway)
+            "loc-iiitnr_loc-zora": {
+                title: "Direct BRTS Bus Corridor (Zero Auto Fee)",
+                sub: "Bus drops directly at Zora Bus Stop",
+                legs: [
+                    {
+                        type: "bus",
+                        vehicle: "BRTS Route 101 / Express 102",
+                        from: "IIITNR Main Gate",
+                        to: "Zora Bus Stop (GE Road Highway)",
+                        fare: 25,
+                        time: "32 mins",
+                        icon: "bus",
+                        color: "bg-emerald-600",
+                        note: "Direct BRTS bus down Expressway. Stop is right at Zora / IGKV turn."
+                    },
+                    {
+                        type: "walk",
+                        vehicle: "Direct Arrival / 1 min Walk",
+                        from: "Zora Bus Stop",
+                        to: "Zora Crossing / GE Road",
+                        fare: 0,
+                        time: "1 min",
+                        icon: "footprints",
+                        color: "bg-blue-500",
+                        note: "You have arrived at your destination on the highway."
+                    }
+                ],
+                waypoints: [[21.1285, 81.7662], [21.2395, 81.7010]]
+            },
+
+            // IIITNR -> Ambuja Mall
+            "loc-iiitnr_loc-ambuja": {
+                title: "Bus + 2 Shared Auto Transfers",
+                sub: "Budget transfer route to Ambuja Mall",
+                legs: [
+                    {
+                        type: "bus",
+                        vehicle: "BRTS Express Bus 101/102",
+                        from: "IIITNR Main Gate",
+                        to: "Telibandha Expressway Hub",
+                        fare: 25,
+                        time: "35 mins",
+                        icon: "bus",
+                        color: "bg-emerald-600",
+                        note: "BRTS Bus along Naya Raipur Expressway to Telibandha."
+                    },
+                    {
+                        type: "auto",
+                        vehicle: "Shared E-Rickshaw / Auto",
+                        from: "Telibandha Hub",
+                        to: "Pandri Market Stop",
+                        fare: 20,
+                        time: "12 mins",
+                        icon: "car",
+                        color: "bg-amber-500",
+                        note: "Shared auto towards Pandri Bus Stand."
+                    },
+                    {
+                        type: "auto",
+                        vehicle: "Shared Auto / E-Rickshaw",
+                        from: "Pandri Market",
+                        to: "Ambuja City Centre Mall",
+                        fare: 20,
+                        time: "10 mins",
+                        icon: "car",
+                        color: "bg-amber-500",
+                        note: "Final leg along Vidhan Sabha Road to Mall gate."
+                    }
+                ],
+                waypoints: [[21.1285, 81.7662], [21.2380, 81.6680], [21.2560, 81.6520], [21.2721, 81.6660]]
+            },
+
+            // IIITNR -> Balco Medical Centre
+            "loc-iiitnr_loc-balco": {
+                title: "BRTS Bus + Local Shared Auto",
+                sub: "Short off-corridor transfer inside Nava Raipur",
+                legs: [
+                    {
+                        type: "bus",
+                        vehicle: "BRTS City Route 201",
+                        from: "IIITNR Main Gate",
+                        to: "CBD Sector 21 Station",
+                        fare: 15,
+                        time: "12 mins",
+                        icon: "bus",
+                        color: "bg-emerald-600",
+                        note: "BRTS bus to Central Business District station."
+                    },
+                    {
+                        type: "auto",
+                        vehicle: "Shared Auto / Rapido Bike",
+                        from: "CBD Sector 21 Station",
+                        to: "Balco Medical Centre (Sector 36)",
+                        fare: 20,
+                        time: "8 mins",
+                        icon: "car",
+                        color: "bg-amber-500",
+                        note: "Take local auto inside Sector 36 dedicated route."
+                    }
+                ],
+                waypoints: [[21.1285, 81.7662], [21.1550, 81.7720], [21.1570, 81.7890]]
+            },
+
+            // HNLU -> Magneto Mall
+            "loc-hnlu_loc-magneto": {
+                title: "Direct BRTS Bus (Zero Extra Auto Fee)",
+                sub: "Corridor Stop right across GE Road",
+                legs: [
+                    {
+                        type: "bus",
+                        vehicle: "BRTS Route 101 / 102",
+                        from: "HNLU Bus Stop",
+                        to: "Labhandi / Magneto Bus Stop",
+                        fare: 20,
+                        time: "30 mins",
+                        icon: "bus",
+                        color: "bg-emerald-600",
+                        note: "Board bus from HNLU main gate."
+                    },
+                    {
+                        type: "walk",
+                        vehicle: "Short Walk (Pedestrian Bridge)",
+                        from: "Labhandi Bus Stop",
+                        to: "Magneto The Mall Gate",
+                        fare: 0,
+                        time: "3 mins",
+                        icon: "footprints",
+                        color: "bg-blue-500",
+                        note: "Cross pedestrian overbridge directly into Magneto Mall."
+                    }
+                ],
+                waypoints: [[21.1398, 81.7761], [21.2425, 81.6820]]
+            }
+        };
+
+        // Bus Schedule Mock Timetable Data
+        const BUS_TIMINGS_DATA = [
+            {
+                stopId: "iiitnr",
+                stopName: "IIITNR Main Gate (Sector 24)",
+                routeNo: "BRTS Express 101 / 102",
+                destination: "Zora / Telibandha / Raipur Station",
+                frequency: "Every 20 Mins",
+                firstBus: "06:30 AM",
+                lastBus: "09:45 PM",
+                upcoming: ["08:20 AM", "08:40 AM", "09:00 AM", "09:20 AM"]
+            },
+            {
+                stopId: "hnlu",
+                stopName: "HNLU Bus Stop (Nava Raipur)",
+                routeNo: "BRTS Route 101",
+                destination: "Mana Turn / Telibandha / Station",
+                frequency: "Every 20 Mins",
+                firstBus: "06:30 AM",
+                lastBus: "09:30 PM",
+                upcoming: ["08:15 AM", "08:35 AM", "08:55 AM", "09:15 AM"]
+            },
+            {
+                stopId: "zora",
+                stopName: "Zora Bus Stop (GE Road Highway)",
+                routeNo: "BRTS 101 & City Bus 5A",
+                destination: "Magneto / Telibandha / Nava Raipur",
+                frequency: "Every 10 Mins",
+                firstBus: "06:15 AM",
+                lastBus: "10:00 PM",
+                upcoming: ["08:08 AM", "08:18 AM", "08:28 AM", "08:38 AM"]
+            },
+            {
+                stopId: "airport_turn",
+                stopName: "Mana Camp / Airport Turn Stop",
+                routeNo: "Airport Shuttle & BRTS 101",
+                destination: "Mana Airport Terminal / Telibandha",
+                frequency: "Every 15 Mins",
+                firstBus: "06:10 AM",
+                lastBus: "09:40 PM",
+                upcoming: ["08:12 AM", "08:27 AM", "08:42 AM", "08:57 AM"]
+            },
+            {
+                stopId: "telibandha",
+                stopName: "Telibandha Express Highway Stop",
+                routeNo: "BRTS Route 101 / 102 & Shared Autos",
+                destination: "Nava Raipur / Pandri / GE Road",
+                frequency: "Every 10 Mins",
+                firstBus: "06:15 AM",
+                lastBus: "10:15 PM",
+                upcoming: ["08:05 AM", "08:15 AM", "08:25 AM", "08:35 AM"]
+            },
+            {
+                stopId: "pandri",
+                stopName: "Pandri Bus Stand Interchange",
+                routeNo: "City Route 5A & Ambuja Shared Autos",
+                destination: "Ambuja Mall / Vidhan Sabha Road",
+                frequency: "Every 10 Mins",
+                firstBus: "06:00 AM",
+                lastBus: "09:30 PM",
+                upcoming: ["08:10 AM", "08:20 AM", "08:30 AM", "08:40 AM"]
+            },
+            {
+                stopId: "cbd",
+                stopName: "CBD Station Stop (Nava Raipur)",
+                routeNo: "Route 201 (Balco / Sector 36 Link)",
+                destination: "Balco Hospital / Telibandha",
+                frequency: "Every 15 Mins",
+                firstBus: "06:00 AM",
+                lastBus: "10:00 PM",
+                upcoming: ["08:10 AM", "08:25 AM", "08:40 AM", "08:55 AM"]
+            },
+            {
+                stopId: "rpr_station",
+                stopName: "Raipur Junction Station Stop",
+                routeNo: "BRTS Nava Raipur Direct",
+                destination: "Zora / Telibandha / IIITNR / HNLU",
+                frequency: "Every 20 Mins",
+                firstBus: "06:00 AM",
+                lastBus: "09:30 PM",
+                upcoming: ["08:00 AM", "08:20 AM", "08:40 AM", "09:00 AM"]
+            }
+        ];
+
+        // Global State Variables
+        let map;
+        let markers = {};
+        let activePolyline = null;
+        let activeTileLayer;
+        let isDarkMode = false;
+        let currentTileTheme = 'light';
+
+        window.onload = function() {
+            initMap();
+            populateSelectDropdowns();
+            renderBusSchedules();
+            renderDirectoryCards();
+            
+            // Set default route: IIITNR -> Airport
+            document.getElementById('origin-select').value = 'loc-iiitnr';
+            document.getElementById('destination-select').value = 'loc-airport';
+            calculateAndDisplayRoute();
+
+            lucide.createIcons();
+        };
+
+        function initMap() {
+            // Centered between Raipur and Nava Raipur
+            map = L.map('map', {
+                zoomControl: false
+            }).setView([21.1950, 81.7000], 12);
+
+            L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+            activeTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ'
+            }).addTo(map);
+
+            // Render Spot Markers on Map
+            LOCATIONS_DATA.forEach(loc => {
+                const markerIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style="background-color: ${loc.color};" class="w-7 h-7 rounded-full flex items-center justify-center text-white shadow-lg border-2 border-white ring-2 ring-black/10 transform hover:scale-110 transition-transform">
+                             <div class="w-2 h-2 rounded-full bg-white"></div>
+                           </div>`,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+
+                const marker = L.marker([loc.lat, loc.lng], { icon: markerIcon }).addTo(map);
+                
+                const popupContent = `
+                    <div class="p-2 min-w-[180px]">
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">${loc.category}</span>
+                        <h4 class="font-bold text-sm text-gray-900">${loc.name}</h4>
+                        <p class="text-xs text-gray-500 mb-2">${loc.subtext}</p>
+                        <div class="flex gap-1.5">
+                            <button onclick="setAsOrigin('${loc.id}')" class="text-[11px] bg-emerald-600 text-white px-2 py-1 rounded font-semibold hover:bg-emerald-700 transition-colors">Set Origin</button>
+                            <button onclick="setAsDestination('${loc.id}')" class="text-[11px] bg-amber-500 text-gray-900 px-2 py-1 rounded font-bold hover:bg-amber-600 transition-colors">Set Dest</button>
+                        </div>
+                    </div>
+                `;
+
+                marker.bindPopup(popupContent);
+                markers[loc.id] = marker;
+            });
+        }
+
+        function toggleMapType() {
+            map.removeLayer(activeTileLayer);
+            if (currentTileTheme === 'light') {
+                activeTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 19,
+                    attribution: 'Tiles &copy; Esri'
+                }).addTo(map);
+                currentTileTheme = 'dark';
+            } else {
+                activeTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 19,
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ'
+                }).addTo(map);
+                currentTileTheme = 'light';
+            }
+        }
+
+        function resetMapView() {
+            map.setView([21.1950, 81.7000], 12);
+        }
+
+        function populateSelectDropdowns() {
+            const originSelect = document.getElementById('origin-select');
+            const destSelect = document.getElementById('destination-select');
+
+            LOCATIONS_DATA.forEach(loc => {
+                const opt1 = document.createElement('option');
+                opt1.value = loc.id;
+                opt1.textContent = `${loc.name} (${loc.subtext})`;
+                originSelect.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = loc.id;
+                opt2.textContent = `${loc.name} (${loc.subtext})`;
+                destSelect.appendChild(opt2);
+            });
+        }
+
+        function swapLocations() {
+            const orig = document.getElementById('origin-select').value;
+            const dest = document.getElementById('destination-select').value;
+            
+            document.getElementById('origin-select').value = dest;
+            document.getElementById('destination-select').value = orig;
+
+            calculateAndDisplayRoute();
+        }
+
+        function setAsOrigin(id) {
+            document.getElementById('origin-select').value = id;
+            if (markers[id]) markers[id].closePopup();
+            calculateAndDisplayRoute();
+            switchTab('planner');
+        }
+
+        function setAsDestination(id) {
+            document.getElementById('destination-select').value = id;
+            if (markers[id]) markers[id].closePopup();
+            calculateAndDisplayRoute();
+            switchTab('planner');
+        }
+
+        function quickSelectRoute(origId, destId) {
+            document.getElementById('origin-select').value = origId;
+            document.getElementById('destination-select').value = destId;
+            calculateAndDisplayRoute();
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const straightDistance = R * c;
+            return (straightDistance * 1.25).toFixed(1); // 25% road curve factor
+        }
+
+        // Rapido App Deep-Link trigger
+        function bookRapido(serviceType) {
+            const origId = document.getElementById('origin-select').value;
+            const destId = document.getElementById('destination-select').value;
+
+            if (!origId || !destId) {
+                alert("Please select both Origin and Destination first!");
+                return;
+            }
+
+            const origin = LOCATIONS_DATA.find(l => l.id === origId);
+            const dest = LOCATIONS_DATA.find(l => l.id === destId);
+
+            if (!origin || !dest) return;
+
+            // Deep link URI schema for Rapido mobile application
+            const rapidoDeepLink = `rapido://booking?pickup_lat=${origin.lat}&pickup_lng=${origin.lng}&drop_lat=${dest.lat}&drop_lng=${dest.lng}&service=${serviceType}`;
+            const rapidoWebFallback = `https://rapido.bike/`;
+
+            // Try opening deep link or fallback to web site
+            const now = Date.now();
+            window.location.href = rapidoDeepLink;
+
+            setTimeout(() => {
+                if (Date.now() - now < 2000) {
+                    window.open(rapidoWebFallback, '_blank');
+                }
+            }, 1000);
+        }
+
+        function calculateAndDisplayRoute() {
+            const origId = document.getElementById('origin-select').value;
+            const destId = document.getElementById('destination-select').value;
+
+            if (!origId || !destId || origId === destId) {
+                if (activePolyline) map.removeLayer(activePolyline);
+                document.getElementById('route-summary').classList.add('hidden');
+                return;
+            }
+
+            const origin = LOCATIONS_DATA.find(l => l.id === origId);
+            const dest = LOCATIONS_DATA.find(l => l.id === destId);
+
+            if (!origin || !dest) return;
+
+            const distance = parseFloat(calculateDistance(origin.lat, origin.lng, dest.lat, dest.lng));
+            
+            // Calculate Rapido Live Rates
+            // Bike: ₹15 base + ₹8/km
+            const rapidoBikeFare = Math.round(15 + (distance * 8));
+            const rapidoBikeTime = Math.round((distance / 35) * 60 + 3);
+
+            // Auto: ₹25 base + ₹12/km
+            const rapidoAutoFare = Math.round(25 + (distance * 12));
+            const rapidoAutoTime = Math.round((distance / 28) * 60 + 4);
+
+            // Cab: ₹50 base + ₹18/km
+            const rapidoCabFare = Math.round(50 + (distance * 18));
+            const rapidoCabTime = Math.round((distance / 40) * 60 + 5);
+
+            document.getElementById('rapido-bike-fare').innerText = `₹${rapidoBikeFare}`;
+            document.getElementById('rapido-bike-time').innerText = `~${rapidoBikeTime} mins`;
+
+            document.getElementById('rapido-auto-fare').innerText = `₹${rapidoAutoFare}`;
+            document.getElementById('rapido-auto-time').innerText = `~${rapidoAutoTime} mins`;
+
+            document.getElementById('rapido-cab-fare').innerText = `₹${rapidoCabFare}`;
+            document.getElementById('rapido-cab-time').innerText = `~${rapidoCabTime} mins`;
+
+            // Lookup hand-crafted route rules or auto-generate based on corridor status
+            const ruleKey = `${origId}_${destId}`;
+            const reverseRuleKey = `${destId}_${origId}`;
+            
+            let routeInfo = ROUTE_RULES[ruleKey] || ROUTE_RULES[reverseRuleKey];
+
+            if (!routeInfo) {
+                routeInfo = generateDynamicMultiLeg(origin, dest, distance);
+            }
+
+            // Draw polyline on map
+            if (activePolyline) map.removeLayer(activePolyline);
+
+            activePolyline = L.polyline(routeInfo.waypoints, {
+                color: '#16a34a',
+                weight: 5,
+                opacity: 0.85,
+                dashArray: '8, 8'
+            }).addTo(map);
+
+            map.fitBounds(activePolyline.getBounds(), { padding: [50, 50] });
+
+            // Update Summary Header
+            document.getElementById('route-summary').classList.remove('hidden');
+            document.getElementById('summary-distance').innerText = `${distance} km`;
+            document.getElementById('summary-transfers').innerText = `${routeInfo.legs.length} Leg Route (${routeInfo.legs.length - 1} Transfer)`;
+
+            // Update Corridor Badge
+            const badgeEl = document.getElementById('corridor-badge');
+            if (dest.isDirectCorridor) {
+                badgeEl.innerText = "Direct Bus Highway Stop";
+                badgeEl.className = "text-[11px] text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800";
+            } else {
+                badgeEl.innerText = "Bus + Shared Auto Required";
+                badgeEl.className = "text-[11px] text-amber-700 dark:text-amber-300 font-bold bg-amber-50 dark:bg-amber-950 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800";
+            }
+
+            // Render Step-by-Step UI
+            document.getElementById('multi-leg-title').innerText = routeInfo.title;
+            document.getElementById('multi-leg-sub').innerText = routeInfo.sub;
+
+            const stepsContainer = document.getElementById('steps-container');
+            stepsContainer.innerHTML = '';
+
+            let totalMultiLegFare = 0;
+            let totalMultiLegMinutes = 0;
+
+            routeInfo.legs.forEach((leg, index) => {
+                totalMultiLegFare += leg.fare;
+                const minVal = parseInt(leg.time) || 10;
+                totalMultiLegMinutes += minVal;
+
+                const isLast = index === routeInfo.legs.length - 1;
+
+                const stepEl = document.createElement('div');
+                stepEl.className = "relative flex items-start space-x-3 text-xs";
+                stepEl.innerHTML = `
+                    ${!isLast ? '<div class="step-connector"></div>' : ''}
+                    <div class="${leg.color} text-white w-8 h-8 rounded-full flex items-center justify-center font-bold flex-shrink-0 z-10 shadow-xs">
+                        <i data-lucide="${leg.icon}" class="w-4 h-4"></i>
+                    </div>
+                    <div class="flex-1 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-200/80 dark:border-gray-700">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-extrabold text-gray-900 dark:text-white text-xs">
+                                LEG ${index + 1}: ${leg.vehicle}
+                            </span>
+                            <span class="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded-md text-[11px]">
+                                ${leg.fare > 0 ? `₹${leg.fare}` : 'Free'}
+                            </span>
+                        </div>
+                        <div class="text-gray-600 dark:text-gray-300 space-y-0.5 text-[11px]">
+                            <p><strong>From:</strong> ${leg.from}</p>
+                            <p><strong>To:</strong> ${leg.to}</p>
+                            <p class="text-gray-400 dark:text-gray-400 mt-1 flex items-center gap-1">
+                                <i data-lucide="info" class="w-3 h-3 text-emerald-600"></i> ${leg.note} • (${leg.time})
+                            </p>
+                        </div>
+                    </div>
+                `;
+                stepsContainer.appendChild(stepEl);
+            });
+
+            document.getElementById('multi-leg-total-fare').innerText = `₹${totalMultiLegFare}`;
+            document.getElementById('multi-leg-total-time').innerText = `~${totalMultiLegMinutes} mins total`;
+
+            // Savings Metrics
+            const co2Saved = (distance * 0.12).toFixed(1);
+            const rapidoSavings = Math.max(0, rapidoCabFare - totalMultiLegFare);
+
+            document.getElementById('co2-saving').innerText = co2Saved;
+            document.getElementById('rapido-savings').innerText = rapidoSavings;
+
+            lucide.createIcons();
+        }
+
+        // Dynamic multi-leg generator for locations without explicit static overrides
+        function generateDynamicMultiLeg(origin, dest, distance) {
+            let busFare = 20;
+            if (distance > 12) busFare = 25;
+            if (distance > 22) busFare = 30;
+
+            const legs = [];
+
+            if (dest.isDirectCorridor) {
+                // Direct bus corridor stop
+                legs.push({
+                    type: "bus",
+                    vehicle: "BRTS Express Bus",
+                    from: origin.name,
+                    to: dest.name,
+                    fare: busFare,
+                    time: `${Math.round((distance / 35) * 60 + 5)} mins`,
+                    icon: "bus",
+                    color: "bg-emerald-600",
+                    note: `Direct corridor bus stop right at ${dest.name}. No auto required!`
+                });
+                legs.push({
+                    type: "walk",
+                    vehicle: "Direct Arrival / Short Walk",
+                    from: `${dest.name} Bus Stop`,
+                    to: dest.name,
+                    fare: 0,
+                    time: "2 mins",
+                    icon: "footprints",
+                    color: "bg-blue-500",
+                    note: "Walk right into the spot from the bus stop."
+                });
+
+                return {
+                    title: "Direct Corridor Bus Route",
+                    sub: "No Shared Auto Transfer Needed",
+                    legs: legs,
+                    waypoints: [[origin.lat, origin.lng], [dest.lat, dest.lng]]
+                };
+            } else {
+                // Off-corridor spot requiring last-mile transfer
+                const transferStop = dest.nearestStop || "Telibandha Expressway Hub";
+                const autoFee = dest.autoFareFromStop || 20;
+
+                legs.push({
+                    type: "bus",
+                    vehicle: "BRTS Express Bus",
+                    from: origin.name,
+                    to: transferStop,
+                    fare: busFare,
+                    time: `${Math.round((distance * 0.75 / 35) * 60 + 5)} mins`,
+                    icon: "bus",
+                    color: "bg-emerald-600",
+                    note: `Take Express Bus to ${transferStop}.`
+                });
+
+                legs.push({
+                    type: "auto",
+                    vehicle: "Shared Auto / Rapido Bike",
+                    from: transferStop,
+                    to: dest.name,
+                    fare: autoFee,
+                    time: `${Math.round((distance * 0.25 / 25) * 60 + 5)} mins`,
+                    icon: "car",
+                    color: "bg-amber-500",
+                    note: `Board shared auto or Rapido Bike at bus stop for last-mile connection.`
+                });
+
+                const midLat = (origin.lat + dest.lat) / 2 + 0.01;
+                const midLng = (origin.lng + dest.lng) / 2 + 0.01;
+
+                return {
+                    title: "Bus + Last-Mile Shared Auto / Rapido",
+                    sub: `Transfer via ${transferStop}`,
+                    legs: legs,
+                    waypoints: [[origin.lat, origin.lng], [midLat, midLng], [dest.lat, dest.lng]]
+                };
+            }
+        }
+
+        function renderBusSchedules() {
+            const filterStop = document.getElementById('schedule-stop-select').value;
+            const container = document.getElementById('bus-schedules-container');
+            container.innerHTML = '';
+
+            const filteredData = filterStop === 'all' 
+                ? BUS_TIMINGS_DATA 
+                : BUS_TIMINGS_DATA.filter(b => b.stopId === filterStop);
+
+            filteredData.forEach(schedule => {
+                const card = document.createElement('div');
+                card.className = "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 shadow-2xs space-y-3";
+                
+                const upcomingBadges = schedule.upcoming.map((time, idx) => `
+                    <span class="${idx === 0 ? 'bg-emerald-600 text-white font-bold ring-2 ring-emerald-400/30' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'} px-2.5 py-1 rounded-lg text-xs">
+                        ${idx === 0 ? 'NEXT: ' : ''}${time}
+                    </span>
+                `).join('');
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">${schedule.routeNo}</span>
+                            <h3 class="font-bold text-gray-900 dark:text-white text-sm mt-1">${schedule.stopName}</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Heading towards: <strong>${schedule.destination}</strong></p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center justify-end gap-1">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Active
+                            </span>
+                            <span class="text-[11px] text-gray-400">${schedule.frequency}</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Upcoming Departure Timeline:</p>
+                        <div class="flex flex-wrap gap-2">
+                            ${upcomingBadges}
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-gray-100 dark:border-gray-700/60 flex justify-between text-[11px] text-gray-400">
+                        <span>First: ${schedule.firstBus}</span>
+                        <span>Last: ${schedule.lastBus}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderDirectoryCards(categoryFilter = 'all') {
+            const container = document.getElementById('directory-cards-container');
+            container.innerHTML = '';
+
+            const filteredLocations = categoryFilter === 'all' 
+                ? LOCATIONS_DATA 
+                : LOCATIONS_DATA.filter(l => l.category === categoryFilter);
+
+            filteredLocations.forEach(loc => {
+                const card = document.createElement('div');
+                card.className = "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex items-center justify-between hover:border-amber-500 transition-all cursor-pointer group";
+                card.onclick = () => {
+                    map.setView([loc.lat, loc.lng], 15);
+                    if (markers[loc.id]) markers[loc.id].openPopup();
+                };
+
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div style="background-color: ${loc.color}20; color: ${loc.color};" class="p-2.5 rounded-xl flex items-center justify-center">
+                            <i data-lucide="map-pin" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-bold text-gray-900 dark:text-white text-sm group-hover:text-amber-600 transition-colors">${loc.name}</h4>
+                                ${loc.isDirectCorridor ? '<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded">Direct Stop</span>' : '<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded">+Auto/Rapido</span>'}
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${loc.subtext}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 text-gray-400 group-hover:text-amber-600">
+                        <i data-lucide="navigation" class="w-4 h-4"></i>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            lucide.createIcons();
+        }
+
+        function filterDirectory(cat) {
+            const btns = document.querySelectorAll('.dir-filter-btn');
+            btns.forEach(btn => {
+                btn.classList.remove('bg-emerald-600', 'text-white');
+                btn.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+            });
+            event.target.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+            event.target.classList.add('bg-emerald-600', 'text-white');
+
+            renderDirectoryCards(cat);
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.view-panel').forEach(p => p.classList.add('hidden'));
+            document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('flex'));
+
+            const activePanel = document.getElementById(`view-${tabName}`);
+            activePanel.classList.remove('hidden');
+            activePanel.classList.add('flex');
+
+            const tabs = ['planner', 'schedules', 'directory'];
+            tabs.forEach(t => {
+                const navBtn = document.getElementById(`nav-${t}`);
+                const mobNavBtn = document.getElementById(`mob-nav-${t}`);
+
+                if (t === tabName) {
+                    if (navBtn) navBtn.className = "tab-btn flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-lg text-amber-700 dark:text-amber-400 bg-white dark:bg-gray-800 shadow-xs transition-all";
+                    if (mobNavBtn) mobNavBtn.className = "flex flex-col items-center py-1 px-3 rounded-lg text-amber-600 font-bold text-xs";
+                } else {
+                    if (navBtn) navBtn.className = "tab-btn flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all";
+                    if (mobNavBtn) mobNavBtn.className = "flex flex-col items-center py-1 px-3 rounded-lg text-gray-500 dark:text-gray-400 text-xs";
+                }
+            });
+
+            setTimeout(() => { map.invalidateSize(); }, 200);
+        }
+
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+    </script>
+</body>
+</html>
