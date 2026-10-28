@@ -16,6 +16,7 @@ from .database import Base, engine
 from .seed import seed_database
 from .routers import events, complaints, mart, mobility, academics, auth, admin, notices
 from .routers import smart_mobility
+from fastapi.middleware.cors import CORSMiddleware
 
 # ── Paths to the original HTML files (kept in-place, never moved) ─────────────
 _BACKEND_ROOT = Path("C:/Users/Lenovo/Desktop/BACKEND")
@@ -31,6 +32,15 @@ app = FastAPI(
         "Serves B1 Mart and Smart Mobility pages directly as HTML, "
         "plus JSON APIs for all campus data."
     ),
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://smart-campus-smxf.onrender.com",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.add_middleware(
